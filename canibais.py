@@ -1,3 +1,7 @@
+###REFERENCIAS 
+#https://github.com/thiagopnobre/missionarios_canibais/blob/master/missionarios_canibais.py
+#Apoio do Clude.ia
+
 from collections import deque
 
 
