@@ -1,0 +1,21 @@
+
+RESUMO DA COMPARAÇÃO — NeMo Canary v2 vs SeamlessM4T v2
+Dataset: CoVoST2 (pt→en), split de teste, 4023 amostras
+
+BLEU:
+  NeMo Canary v2:   48.74
+  SeamlessM4T v2:    53.81
+
+COMET:
+  NeMo Canary v2:   0.8536
+  SeamlessM4T v2:    0.8833
+
+Latência (segundos):
+  NeMo Canary v2:    média=0.334, mediana=0.321
+  SeamlessM4T v2:     média=0.804, mediana=0.683
+  
+Outliers SeamlessM4T (latência > 5s): 13 de 4023 amostras
+
+NOTA METODOLÓGICA: NeMo Canary rodou em GPU NVIDIA T4 (Google Colab).
+SeamlessM4T rodou em GPU NVIDIA RTX 3050 6GB Laptop (ambiente local).
+A diferença de hardware é uma variável de confusão na comparação de latência.

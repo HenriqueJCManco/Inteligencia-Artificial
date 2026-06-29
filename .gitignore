@@ -1,0 +1,41 @@
+# Dados brutos (áudio, datasets grandes)
+data/
+*.tar
+*.tar.gz
+*.mp3
+*.wav
+
+# Ambientes virtuais / conda
+venv_simulst/
+*.egg-info/
+
+# Cache e checkpoints de modelos
+*.ckpt
+*.nemo
+*.pt
+*.bin
+**/checkpoints/
+.cache/
+
+# Jupyter
+.ipynb_checkpoints/
+**/.ipynb_checkpoints/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.Python
+*.egg
+
+# Sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# VSCode
+.vscode/
+*.code-workspace
+
+# Logs
+*.log

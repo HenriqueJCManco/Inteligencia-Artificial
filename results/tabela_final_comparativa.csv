@@ -1,0 +1,7 @@
+Métrica,NeMo Canary v2,SeamlessM4T v2
+BLEU,48.74,53.81
+COMET,0.8536,0.8833
+Latência média (s),0.334,0.804
+Latência mediana (s),0.321,0.683
+Latência desvio padrão (s),0.09,1.531
+Latência máxima (s),1.238,72.482
