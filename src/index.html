@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tradução Simultânea — PT → EN</title>
+    <style>
+        body {
+            font-family: -apple-system, system-ui, sans-serif;
+            background: #111;
+            color: #eee;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        h1 {
+            font-size: 1.2rem;
+            color: #aaa;
+            text-align: center;
+        }
+
+        #status {
+            font-size: 0.9rem;
+            color: #888;
+            margin-bottom: 20px;
+        }
+
+        #micButton {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            border: none;
+            background: #c0392b;
+            color: white;
+            font-size: 2rem;
+            cursor: pointer;
+            margin: 20px 0;
+        }
+
+        #micButton.gravando {
+            background: #27ae60;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(39, 174, 96, 0.5);
+            }
+
+            70% {
+                box-shadow: 0 0 0 20px rgba(39, 174, 96, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(39, 174, 96, 0);
+            }
+        }
+
+        #transcript {
+            width: 100%;
+            max-width: 500px;
+            background: #1c1c1c;
+            border-radius: 10px;
+            padding: 16px;
+            min-height: 200px;
+            font-size: 1.1rem;
+            line-height: 1.5;
+        }
+
+        .linha {
+        margin-bottom: 10px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #333;
+        color: #fff !important; /* <-- Garante que o texto seja BRANCO */
+        }
+
+        #configArea {
+            margin-bottom: 15px;
+            width: 100%;
+            max-width: 500px;
+        }
+
+        #configArea input {
+            width: 100%;
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid #444;
+            background: #222;
+            color: #eee;
+            box-sizing: border-box;
+        }
+
+        label {
+            font-size: 0.85rem;
+            color: #888;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>🎙️ Tradução Simultânea (PT → EN)</h1>
+
+    <div id="configArea">
+        <label for="serverIp">IP do servidor (PC):</label>
+        <input type="text" id="serverIp" placeholder="ex: 10.0.0.1xx" value="10.0.0.1">
+    </div>
+
+    <div id="status">Desconectado</div>
+
+    <button id="micButton">🎤</button>
+
+    <div id="transcript"></div>
+
+    <script>
+        let ws = null;
+        let audioContext = null;
+        let mediaStream = null;
+        let processor = null;
+        let gravando = false;
+
+        const micButton = document.getElementById('micButton');
+        const statusEl = document.getElementById('status');
+        const transcriptEl = document.getElementById('transcript');
+        const serverIpInput = document.getElementById('serverIp');
+
+        function conectarWebSocket() {
+            const ip = serverIpInput.value.trim();
+            // Atualizado para a nova porta 8080
+            ws = new WebSocket(`ws://${ip}:8080`); 
+
+            ws.onopen = () => {
+                console.log("🟢 WebSocket conectado com sucesso!");
+                statusEl.textContent = 'Conectado ao servidor';
+            };
+
+            ws.onmessage = (event) => {
+                console.log("📥 MENSAGEM DO SERVIDOR:", event.data);
+                
+                try {
+                    const data = JSON.parse(event.data);
+                    // Cria a linha na tela de qualquer jeito, mesmo se o tipo não for 'translation'
+                    const textoExibir = data.text || data.translation || JSON.stringify(data);
+                    
+                    const linha = document.createElement('div');
+                    linha.className = 'linha';
+                    linha.style.color = '#00ff00'; // Força a cor VERDE para dar destaque
+                    linha.textContent = textoExibir;
+                    transcriptEl.prepend(linha);
+                    
+                } catch (e) {
+                    console.error("❌ Erro ao ler o JSON, exibindo texto puro:", event.data);
+                    const linha = document.createElement('div');
+                    linha.className = 'linha';
+                    linha.style.color = '#ff0000';
+                    linha.textContent = event.data;
+                    transcriptEl.prepend(linha);
+                }
+            };
+
+            ws.onerror = (error) => {
+                console.error("🔴 Erro no WebSocket:", error);
+                statusEl.textContent = 'Erro de conexão';
+            };
+
+            ws.onclose = (event) => {
+                console.log("⚪ Conexão fechada pelo servidor. Código:", event.code, "Motivo:", event.reason);
+                statusEl.textContent = 'Desconectado';
+            };
+        }
+
+        async function iniciarGravacao() {
+            conectarWebSocket();
+
+            mediaStream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, sampleRate: 16000 } });
+            audioContext = new AudioContext({ sampleRate: 16000 });
+            const source = audioContext.createMediaStreamSource(mediaStream);
+
+            processor = audioContext.createScriptProcessor(4096, 1, 1);
+
+            processor.onaudioprocess = (e) => {
+                // Só envia se o WebSocket estiver aberto E se ainda estivermos no modo gravando
+                if (gravando && ws && ws.readyState === WebSocket.OPEN) {
+                    const input = e.inputBuffer.getChannelData(0);
+                    const pcm16 = floatTo16BitPCM(input);
+                    ws.send(pcm16);
+                }
+            };
+
+            source.connect(processor);
+            processor.connect(audioContext.destination);
+
+            gravando = true;
+            micButton.classList.add('gravando');
+            statusEl.textContent = 'Gravando e enviando áudio...';
+        }
+
+        function pararGravacao() {
+            gravando = false; 
+            micButton.classList.remove('gravando');
+            statusEl.textContent = 'Processando últimas traduções na IA... (aguarde)';
+
+            if (processor) processor.disconnect();
+            if (mediaStream) mediaStream.getTracks().forEach(t => t.stop());
+
+            // Aumentamos para 10 segundos (10000ms) para dar tempo da CPU processar
+            setTimeout(() => {
+                if (ws) {
+                    ws.close();
+                    console.log("🟢 WebSocket fechado após período de tolerância longo.");
+                }
+            }, 10000); 
+        }
+
+        function floatTo16BitPCM(input) {
+            const buffer = new ArrayBuffer(input.length * 2);
+            const view = new DataView(buffer);
+            for (let i = 0; i < input.length; i++) {
+                let s = Math.max(-1, Math.min(1, input[i]));
+                view.setInt16(i * 2, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+            }
+            return buffer;
+        }
+
+        micButton.addEventListener('click', () => {
+            if (!gravando) {
+                iniciarGravacao();
+            } else {
+                pararGravacao();
+            }
+        });
+    </script>
+
+</body>
+
+</html>
