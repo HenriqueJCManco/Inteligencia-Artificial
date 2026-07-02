@@ -4,9 +4,10 @@ Recebe chunks de áudio (PCM 16-bit) do cliente (navegador) via WebSocket,
 processa com o modelo, e retorna o texto traduzido (pt -> en).
 
 Para rodar:
-    python src/server.py
+    python -m http.server 8000
+    python src/asr_client.py
 
-O servidor escuta em todas as interfaces de rede (0.0.0.0) na porta 8765,
+O servidor escuta em todas as interfaces de rede (0.0.0.0) na porta 8080,
 permitindo conexões de outros dispositivos na mesma rede Wi-Fi.
 """
 
